@@ -1,9 +1,10 @@
  import express from 'express';
-import { register, login } from '../controllers/authController.js';
+import { login, register } from '../controllers/authController.js';
 
 const router = express.Router();
 
-router.post('/signup', register);
+// Must be POST methods
 router.post('/login', login);
+router.post('/register', register); // Change to '/signup' if your frontend calls /api/auth/signup
 
 export default router;

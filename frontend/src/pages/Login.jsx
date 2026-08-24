@@ -14,6 +14,7 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const successMessage = location.state?.message;
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
