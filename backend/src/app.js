@@ -54,6 +54,19 @@ app.use(
 app.use(morgan('dev'));
 app.use(express.json());
 
+// Health check endpoint
+const healthHandler = (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
