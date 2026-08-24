@@ -1,10 +1,9 @@
  import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api',
 });
 
-// Intercept requests to automatically attach JWT authorization headers
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem('token');
   if (token) {
