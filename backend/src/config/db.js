@@ -8,9 +8,9 @@ if (!cached) {
 }
 
 export const connectDb = async () => {
-  const MONODB_URI = process.env.MONGODB_URI;
+  const MONGODB_URI = process.env.MONGODB_URI;
 
-  if (!MONODB_URI) {
+  if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
   }
 
@@ -26,7 +26,7 @@ export const connectDb = async () => {
       serverSelectionTimeoutMS: 5000,
     };
 
-    cached.promise = mongoose.connect(MONODB_URI, opts).then((mongooseInstance) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
       console.log('MongoDB connected');
       return mongooseInstance;
     });

@@ -22,12 +22,18 @@ app.use(
   })
 );
 
+const configuredOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  process.env.CORS_ORIGIN,
+  ...configuredOrigins,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
-].filter(Boolean);
+  'http://localhost:4173',
+];
 
 app.use(
   cors({
@@ -41,12 +47,18 @@ app.use(
       if (isAllowed) {
         callback(null, true);
       } else {
+        console.warn(`CORS blocked for origin: ${origin}`);
         callback(new Error(`CORS not allowed for origin: ${origin}`));
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// Explicitly handle preflight OPTIONS requests before hitting middleware/routes
+app.options('*', cors());
 
 // 1. Move Body Parsers BEFORE database & route middleware
 app.use(morgan('dev'));
@@ -90,12 +102,9 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use(errorHandler);
 
-// Listen locally if not running in production
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 export default app;
