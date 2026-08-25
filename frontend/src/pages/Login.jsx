@@ -12,13 +12,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [shake, setShake] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const successMessage = location.state?.message;
-  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
+  };
+
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
   };
 
   const handleSubmit = async (e) => {
@@ -46,6 +52,7 @@ export default function Login() {
     } catch (err) {
       console.error('Login Error:', err);
       setError(err.response?.data?.message || err.message || 'Invalid email or password.');
+      triggerShake();
     } finally {
       setLoading(false);
     }
@@ -55,33 +62,179 @@ export default function Login() {
     <>
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(12px); }
+          from { opacity: 0; transform: translateY(20px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(14px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .glass-card {
-          animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        @keyframes badgePop {
+          0% { opacity: 0; transform: scale(0.7) translateY(-8px); }
+          60% { opacity: 1; transform: scale(1.05) translateY(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes floatOrb1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(30px, -40px) scale(1.1); }
+        }
+        @keyframes floatOrb2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.15); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes shakeX {
+          10%, 90% { transform: translateX(-2px); }
+          20%, 80% { transform: translateX(4px); }
+          30%, 50%, 70% { transform: translateX(-8px); }
+          40%, 60% { transform: translateX(8px); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes bgZoom {
+          from { transform: scale(1.08); }
+          to { transform: scale(1); }
+        }
+
+        .glass-card {
+          animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .glass-card.shake {
+          animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards, shakeX 0.5s ease-in-out;
+        }
+        .bg-image-anim {
+          animation: bgZoom 8s ease-out forwards;
+        }
+        .logo-badge-anim {
+          animation: badgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+        }
+        .title-anim {
+          animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+        .subtitle-anim {
+          animation: fadeInUp 0.6s ease-out 0.3s both;
+        }
+        .field-anim-1 {
+          animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+        .field-anim-2 {
+          animation: fadeInUp 0.6s ease-out 0.5s both;
+        }
+        .field-anim-3 {
+          animation: fadeInUp 0.6s ease-out 0.6s both;
+        }
+        .footer-anim {
+          animation: fadeInUp 0.6s ease-out 0.7s both;
+        }
+        .orb-1 {
+          animation: floatOrb1 9s ease-in-out infinite;
+        }
+        .orb-2 {
+          animation: floatOrb2 11s ease-in-out infinite;
+        }
+
         .glass-input {
-          transition: all 0.2s ease;
+          transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, transform 0.2s ease;
         }
         .glass-input:focus {
           border-color: #0ea5e9 !important;
-          box-shadow: 0 0 12px rgba(14, 165, 233, 0.3) !important;
+          box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18), 0 0 16px rgba(14, 165, 233, 0.3) !important;
           background-color: rgba(255, 255, 255, 0.15) !important;
+          transform: translateY(-1px);
         }
         .glass-input::placeholder {
-          color: rgba(255, 255, 255, 0.7);
+          color: rgba(255, 255, 255, 0.65);
+          transition: color 0.2s ease;
         }
+        .glass-input:focus::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .input-label {
+          transition: color 0.2s ease, transform 0.2s ease;
+        }
+        .input-label.active {
+          color: #38bdf8;
+          transform: translateX(2px);
+        }
+
+        .toggle-btn {
+          transition: color 0.2s ease, transform 0.15s ease;
+        }
+        .toggle-btn:hover {
+          color: #7dd3fc;
+          transform: translateY(-50%) scale(1.08);
+        }
+
         .submit-btn {
-          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .submit-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            110deg,
+            transparent 20%,
+            rgba(255, 255, 255, 0.35) 45%,
+            rgba(255, 255, 255, 0.35) 55%,
+            transparent 80%
+          );
+          background-size: 200% 100%;
+          animation: shimmer 2.8s linear infinite;
+          pointer-events: none;
         }
         .submit-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px -4px rgba(14, 165, 233, 0.6);
+          box-shadow: 0 10px 28px -4px rgba(14, 165, 233, 0.65);
           filter: brightness(1.1);
         }
         .submit-btn:active:not(:disabled) {
-          transform: translateY(0);
+          transform: translateY(0) scale(0.99);
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+          margin-right: 8px;
+          vertical-align: middle;
+        }
+
+        .signup-link {
+          position: relative;
+          transition: color 0.2s ease;
+        }
+        .signup-link::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: -2px;
+          width: 0%;
+          height: 1.5px;
+          background: #38bdf8;
+          transition: width 0.25s ease;
+        }
+        .signup-link:hover::after {
+          width: 100%;
+        }
+
+        .status-box {
+          animation: fadeInUp 0.4s ease-out both;
         }
       `}</style>
 
@@ -90,25 +243,35 @@ export default function Login() {
         <img
           src={bgImage}
           alt="Background"
+          className="bg-image-anim"
           style={styles.bgImage}
         />
 
         {/* Ambient Overlay for UI readability */}
         <div style={styles.darkOverlay} />
 
-        <div className="glass-card" style={styles.card}>
+        {/* Floating ambient glow orbs */}
+        <div className="orb-1" style={styles.orbOne} />
+        <div className="orb-2" style={styles.orbTwo} />
+
+        <div className={`glass-card${shake ? ' shake' : ''}`} style={styles.card}>
           <div style={styles.headerContainer}>
-            <div style={styles.logoBadge}>🏫 Reception Helpdesk</div>
-            <h2 style={styles.title}>Welcome Back</h2>
-            <p style={styles.subtitle}>Enter your credentials to access your workspace</p>
+            <div className="logo-badge-anim" style={styles.logoBadge}>🏫 Reception Helpdesk</div>
+            <h2 className="title-anim" style={styles.title}>Welcome Back</h2>
+            <p className="subtitle-anim" style={styles.subtitle}>Enter your credentials to access your workspace</p>
           </div>
 
-          {successMessage && <div style={styles.successBox}>{successMessage}</div>}
-          {error && <div style={styles.errorBox}>{error}</div>}
+          {successMessage && <div className="status-box" style={styles.successBox}>{successMessage}</div>}
+          {error && <div className="status-box" style={styles.errorBox}>{error}</div>}
 
           <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Email Address</label>
+            <div className="field-anim-1" style={styles.inputGroup}>
+              <label
+                className={`input-label${focusedField === 'email' ? ' active' : ''}`}
+                style={styles.label}
+              >
+                Email Address
+              </label>
               <input
                 type="email"
                 name="email"
@@ -116,13 +279,20 @@ export default function Login() {
                 placeholder="admin@reception.com"
                 value={formData.email}
                 onChange={handleChange}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 className="glass-input"
                 style={styles.input}
               />
             </div>
 
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Password</label>
+            <div className="field-anim-2" style={styles.inputGroup}>
+              <label
+                className={`input-label${focusedField === 'password' ? ' active' : ''}`}
+                style={styles.label}
+              >
+                Password
+              </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -131,12 +301,15 @@ export default function Login() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   className="glass-input"
                   style={{ ...styles.input, paddingRight: '72px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="toggle-btn"
                   style={styles.toggleBtn}
                 >
                   {showPassword ? 'HIDE' : 'SHOW'}
@@ -144,23 +317,32 @@ export default function Login() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="submit-btn"
-              style={{
-                ...styles.submitBtn,
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? 'Authenticating...' : 'Sign In to Dashboard →'}
-            </button>
+            <div className="field-anim-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="submit-btn"
+                style={{
+                  ...styles.submitBtn,
+                  opacity: loading ? 0.85 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner" />
+                    Authenticating...
+                  </>
+                ) : (
+                  'Sign In to Dashboard →'
+                )}
+              </button>
+            </div>
           </form>
 
-          <p style={styles.footerText}>
+          <p className="footer-anim" style={styles.footerText}>
             Don't have an account?{' '}
-            <Link to="/signup" style={styles.signupLink}>
+            <Link to="/signup" className="signup-link" style={styles.signupLink}>
               Sign Up
             </Link>
           </p>
@@ -199,6 +381,30 @@ const styles = {
     height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     zIndex: 2,
+  },
+  orbOne: {
+    position: 'absolute',
+    top: '10%',
+    left: '8%',
+    width: '260px',
+    height: '260px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(14,165,233,0.35) 0%, rgba(14,165,233,0) 70%)',
+    filter: 'blur(10px)',
+    zIndex: 3,
+    pointerEvents: 'none',
+  },
+  orbTwo: {
+    position: 'absolute',
+    bottom: '8%',
+    right: '10%',
+    width: '320px',
+    height: '320px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(56,189,248,0.3) 0%, rgba(56,189,248,0) 70%)',
+    filter: 'blur(12px)',
+    zIndex: 3,
+    pointerEvents: 'none',
   },
   card: {
     width: '100%',

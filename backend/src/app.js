@@ -16,14 +16,12 @@ dotenv.config();
 
 const app = express();
 
-// Configure Helmet to allow cross-origin resource sharing
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
 
-// Define allowed origins for local dev, custom ENV origins, and all Vercel deployments
 const allowedOrigins = [
   process.env.CORS_ORIGIN,
   'http://localhost:5173',
@@ -33,10 +31,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, curl)
       if (!origin) return callback(null, true);
-
-      // Check if origin is explicitly in allowed list or ends with .vercel.app
       const isAllowed =
         allowedOrigins.includes(origin) ||
         origin.endsWith('.vercel.app');
@@ -54,7 +49,16 @@ app.use(
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Health check endpoint
+// Ensure MongoDB/DB connection before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDb();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -67,7 +71,6 @@ const healthHandler = (req, res) => {
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -77,13 +80,12 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 4000;
-
-(async () => {
-  await connectDb();
+// Only listen on a port if running locally (not on Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-})();
+}
 
 export default app;
