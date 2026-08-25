@@ -1,4 +1,4 @@
- import React, { useState } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import API from '../services/api';
 
@@ -8,6 +8,12 @@ import bgImage from '../assets/bg_image.jpg';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Clear existing authentication state when hitting the login route directly
+  useEffect(() => {
+    localStorage.removeItem('token');
+  }, []);
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,7 +54,7 @@ export default function Login() {
       localStorage.clear();
       localStorage.setItem('token', rawToken);
 
-      navigate('/visitors');
+      navigate('/dashboard');
     } catch (err) {
       console.error('Login Error:', err);
       setError(err.response?.data?.message || err.message || 'Invalid email or password.');
