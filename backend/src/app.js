@@ -1,4 +1,4 @@
- import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -15,6 +15,20 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 dotenv.config();
 
 const app = express();
+
+// Global process error handlers to prevent silent crashes
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Connect to MongoDB immediately on startup
+connectDb().catch((err) => {
+  console.error('Initial DB connection failed:', err.message);
+});
 
 app.use(
   helmet({
@@ -60,24 +74,13 @@ app.use(
 // Explicitly handle preflight OPTIONS requests before hitting middleware/routes
 app.options('*', cors());
 
-// 1. Move Body Parsers BEFORE database & route middleware
+// Body Parsers
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.send('Reception Web App API is running smoothly!');
-});
-
-// 2. Database Connection Middleware
-app.use(async (req, res, next) => {
-  try {
-    await connectDb();
-    next();
-  } catch (error) {
-    console.error('Database connection error:', error);
-    res.status(500).json({ message: 'Database connection failed' });
-  }
 });
 
 const healthHandler = (req, res) => {
@@ -92,7 +95,7 @@ const healthHandler = (req, res) => {
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
-// 3. API Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -102,9 +105,11 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = parseInt(process.env.PORT, 10) || 4000;
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`✅ Server running on http://${HOST}:${PORT}`);
 });
 
 export default app;
