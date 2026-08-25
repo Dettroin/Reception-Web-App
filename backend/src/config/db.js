@@ -1,41 +1,43 @@
 import mongoose from 'mongoose';
 
-let isConnected = false;
+// Cache connection globally across serverless function invocations
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
 export const connectDb = async () => {
   const MONGODB_URI = process.env.MONGODB_URI;
 
   if (!MONGODB_URI) {
-    console.error('❌ MONGODB_URI environment variable is missing.');
-    return;
+    throw new Error('Please define the MONGODB_URI environment variable');
   }
 
-  if (isConnected || mongoose.connection.readyState === 1) {
-    isConnected = true;
-    return mongoose.connection;
+  // Reuse existing connection if active
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  // Create connection promise if non-existent
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
+      console.log('MongoDB connected');
+      return mongooseInstance;
+    });
   }
 
   try {
-    const opts = {
-      serverSelectionTimeoutMS: 15000,
-      socketTimeoutMS: 45000,
-    };
-
-    await mongoose.connect(MONGODB_URI, opts);
-    isConnected = true;
-    console.log('✅ MongoDB connected successfully');
-    return mongoose.connection;
+    cached.conn = await cached.promise;
   } catch (error) {
-    isConnected = false;
-    console.error('❌ MongoDB connection error:', error.message);
+    cached.promise = null;
+    throw error;
   }
+
+  return cached.conn;
 };
-
-mongoose.connection.on('disconnected', () => {
-  isConnected = false;
-  console.warn('⚠️ MongoDB disconnected. Attempting reconnect...');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB event error:', err.message);
-});
