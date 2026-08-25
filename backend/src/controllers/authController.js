@@ -27,13 +27,10 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    // Hash password manually if your Mongoose model does NOT have a pre-save hook
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({
       name,
       email: normalizedEmail,
-      password: hashedPassword,
+      password,
       role: 'Receptionist',
       active: true,
     });

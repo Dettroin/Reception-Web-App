@@ -23,7 +23,7 @@ export default function Signup() {
     setError('');
 
     try {
-      await API.post('/auth/register', formData);
+      await API.post('/auth/signup', formData);
       navigate('/login', { state: { message: 'Account created successfully! Please sign in.' } });
     } catch (err) {
       console.error('Signup Error:', err);
