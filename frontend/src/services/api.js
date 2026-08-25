@@ -17,11 +17,19 @@ API.interceptors.request.use((req) => {
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+
+    // Only redirect if unauthorized AND not already trying to log in
+    if (
+      error.response &&
+      (error.response.status === 401 || error.response.status === 403) &&
+      !isLoginEndpoint
+    ) {
       localStorage.removeItem('token');
       localStorage.removeItem('reception_token');
       window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );

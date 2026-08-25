@@ -2,11 +2,11 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-// Helper function to generate JWT (Ensures identical secret key and options)
+// Helper function to generate JWT
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET || 'fallback_secret_key', // MUST match auth.js fallback
+    process.env.JWT_SECRET || 'fallback_secret_key',
     { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
   );
 };
@@ -20,15 +20,20 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
+    // Hash password manually if your Mongoose model does NOT have a pre-save hook
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       name,
-      email,
-      password,
+      email: normalizedEmail,
+      password: hashedPassword,
       role: 'Receptionist',
       active: true,
     });
@@ -52,17 +57,26 @@ export const login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email and password required' });
     }
 
-    const user = await User.findOne({ email, active: true }).select('+password');
-    if (!user || !(await user.comparePassword(password))) {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 1. Fetch user including password
+    const user = await User.findOne({ email: normalizedEmail, active: true }).select('+password');
+    if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Generate token using the helper
+    // 2. Direct bcrypt password check
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // 3. Generate token using helper
     const token = generateToken(user);
 
     res.status(200).json({
       success: true,
-      token, // Direct token reference for simpler frontend consumption
+      token,
       data: {
         token,
         user: { id: user._id, email: user.email, role: user.role, name: user.name },

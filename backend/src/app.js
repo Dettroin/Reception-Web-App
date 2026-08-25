@@ -26,11 +26,13 @@ const allowedOrigins = [
   process.env.CORS_ORIGIN,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'http://localhost:3000',
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or postman)
       if (!origin) return callback(null, true);
       const isAllowed =
         allowedOrigins.includes(origin) ||
@@ -46,20 +48,23 @@ app.use(
   })
 );
 
+// 1. Move Body Parsers BEFORE database & route middleware
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.get('/', (req, res) => {
   res.send('Reception Web App API is running smoothly!');
 });
 
-app.use(morgan('dev'));
-app.use(express.json());
-
-// Ensure MongoDB/DB connection before handling requests
+// 2. Database Connection Middleware
 app.use(async (req, res, next) => {
   try {
     await connectDb();
     next();
   } catch (error) {
-    next(error);
+    console.error('Database connection error:', error);
+    res.status(500).json({ message: 'Database connection failed' });
   }
 });
 
@@ -75,6 +80,7 @@ const healthHandler = (req, res) => {
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
+// 3. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -84,7 +90,7 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use(errorHandler);
 
-// Only listen on a port if running locally (not on Vercel)
+// Listen locally if not running in production
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
