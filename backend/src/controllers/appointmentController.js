@@ -16,11 +16,15 @@ export const getAppointments = async (req, res, next) => {
       sortBy = '-date',
     } = req.query;
 
-    const query = {};
+    const query = { user: req.user._id };
     if (search) {
-      query.$or = [
-        { visitorName: { $regex: search, $options: 'i' } },
-        { meetingWith: { $regex: search, $options: 'i' } },
+      query.$and = [
+        {
+          $or: [
+            { visitorName: { $regex: search, $options: 'i' } },
+            { meetingWith: { $regex: search, $options: 'i' } },
+          ],
+        },
       ];
     }
     if (mobile) query.mobile = mobile;
@@ -52,7 +56,10 @@ export const createAppointment = async (req, res, next) => {
   try {
     const parsed = createAppointmentSchema.safeParse(req.body);
     if (!parsed.success) return next(new AppError(parsed.error.errors[0].message, 400));
-    const doc = await Appointment.create(parsed.data);
+    const doc = await Appointment.create({
+      ...parsed.data,
+      user: req.user._id,
+    });
     res.status(201).json({ success: true, data: doc });
   } catch (e) {
     next(e);
@@ -64,7 +71,7 @@ export const updateAppointment = async (req, res, next) => {
     const { id } = req.params;
     const parsed = createAppointmentSchema.partial().safeParse(req.body);
     if (!parsed.success) return next(new AppError(parsed.error.errors[0].message, 400));
-    const doc = await Appointment.findByIdAndUpdate(id, parsed.data, { new: true, runValidators: true });
+    const doc = await Appointment.findOneAndUpdate({ _id: id, user: req.user._id }, parsed.data, { new: true, runValidators: true });
     if (!doc) return next(new AppError('Appointment not found', 404));
     res.json({ success: true, data: doc });
   } catch (e) {
@@ -75,7 +82,7 @@ export const updateAppointment = async (req, res, next) => {
 export const deleteAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await Appointment.findByIdAndDelete(id);
+    const doc = await Appointment.findOneAndDelete({ _id: id, user: req.user._id });
     if (!doc) return next(new AppError('Appointment not found', 404));
     res.json({ success: true, data: { id } });
   } catch (e) {

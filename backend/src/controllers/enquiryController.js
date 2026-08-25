@@ -16,11 +16,15 @@ export const getEnquiries = async (req, res, next) => {
       sortBy = '-createdAt',
     } = req.query;
 
-    const query = {};
+    const query = { user: req.user._id };
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { message: { $regex: search, $options: 'i' } },
+      query.$and = [
+        {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { message: { $regex: search, $options: 'i' } },
+          ],
+        },
       ];
     }
     if (mobile) query.mobile = mobile;
@@ -52,7 +56,10 @@ export const createEnquiry = async (req, res, next) => {
   try {
     const parsed = createEnquirySchema.safeParse(req.body);
     if (!parsed.success) return next(new AppError(parsed.error.errors[0].message, 400));
-    const doc = await Enquiry.create(parsed.data);
+    const doc = await Enquiry.create({
+      ...parsed.data,
+      user: req.user._id,
+    });
     res.status(201).json({ success: true, data: doc });
   } catch (e) {
     next(e);
@@ -64,7 +71,7 @@ export const updateEnquiry = async (req, res, next) => {
     const { id } = req.params;
     const parsed = createEnquirySchema.partial().safeParse(req.body);
     if (!parsed.success) return next(new AppError(parsed.error.errors[0].message, 400));
-    const doc = await Enquiry.findByIdAndUpdate(id, parsed.data, { new: true, runValidators: true });
+    const doc = await Enquiry.findOneAndUpdate({ _id: id, user: req.user._id }, parsed.data, { new: true, runValidators: true });
     if (!doc) return next(new AppError('Enquiry not found', 404));
     res.json({ success: true, data: doc });
   } catch (e) {
@@ -75,7 +82,7 @@ export const updateEnquiry = async (req, res, next) => {
 export const deleteEnquiry = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await Enquiry.findByIdAndDelete(id);
+    const doc = await Enquiry.findOneAndDelete({ _id: id, user: req.user._id });
     if (!doc) return next(new AppError('Enquiry not found', 404));
     res.json({ success: true, data: { id } });
   } catch (e) {

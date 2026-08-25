@@ -16,12 +16,16 @@ export const getVisitors = async (req, res, next) => {
       sortBy = '-entryTime',
     } = req.query;
 
-    const query = {};
+    const query = { user: req.user._id };
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { organization: { $regex: search, $options: 'i' } },
-        { personToMeet: { $regex: search, $options: 'i' } },
+      query.$and = [
+        {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { organization: { $regex: search, $options: 'i' } },
+            { personToMeet: { $regex: search, $options: 'i' } },
+          ],
+        },
       ];
     }
     if (mobile) query.mobile = mobile;
@@ -62,13 +66,14 @@ export const createVisitor = async (req, res, next) => {
     }
     const body = parsed.data;
 
-    const count = await Visitor.countDocuments();
+    const count = await Visitor.countDocuments({ user: req.user._id });
     const year = new Date().getFullYear();
     const seq = String(count + 1).padStart(5, '0');
     const visitorId = `VIS-${year}-${seq}`;
 
     const doc = await Visitor.create({
       ...body,
+      user: req.user._id,
       visitorId,
       entryTime: body.entryTime ? new Date(body.entryTime) : new Date(),
       status: 'INSIDE',
@@ -83,7 +88,7 @@ export const createVisitor = async (req, res, next) => {
 export const getVisitor = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await Visitor.findById(id).lean();
+    const doc = await Visitor.findOne({ _id: id, user: req.user._id }).lean();
     if (!doc) return next(new AppError('Visitor not found', 404));
     res.json({ success: true, data: doc });
   } catch (e) {
@@ -98,7 +103,7 @@ export const updateVisitor = async (req, res, next) => {
     if (!parsed.success) {
       return next(new AppError(parsed.error.errors[0].message, 400));
     }
-    const doc = await Visitor.findByIdAndUpdate(id, parsed.data, { new: true, runValidators: true });
+    const doc = await Visitor.findOneAndUpdate({ _id: id, user: req.user._id }, parsed.data, { new: true, runValidators: true });
     if (!doc) return next(new AppError('Visitor not found', 404));
     res.json({ success: true, data: doc });
   } catch (e) {
@@ -109,7 +114,7 @@ export const updateVisitor = async (req, res, next) => {
 export const checkoutVisitor = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await Visitor.findById(id);
+    const doc = await Visitor.findOne({ _id: id, user: req.user._id });
     if (!doc) return next(new AppError('Visitor not found', 404));
     if (doc.status !== 'INSIDE') {
       return next(new AppError('Visitor is not currently inside', 400));
@@ -126,7 +131,7 @@ export const checkoutVisitor = async (req, res, next) => {
 export const deleteVisitor = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await Visitor.findByIdAndDelete(id);
+    const doc = await Visitor.findOneAndDelete({ _id: id, user: req.user._id });
     if (!doc) return next(new AppError('Visitor not found', 404));
     res.json({ success: true, data: { id } });
   } catch (e) {

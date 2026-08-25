@@ -1,4 +1,5 @@
- import express from 'express';
+import express from 'express';
+import { auth } from '../middlewares/auth.js';
 import {
   createCallLog,
   getCallLogs,
@@ -6,6 +7,8 @@ import {
 } from '../controllers/callLogController.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 router.post('/', createCallLog);
 router.get('/', getCallLogs);
