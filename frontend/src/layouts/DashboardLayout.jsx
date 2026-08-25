@@ -5,8 +5,12 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // Clear all token variations to prevent stale sessions
+    localStorage.removeItem('token');
     localStorage.removeItem('reception_token');
-    navigate('/login');
+    localStorage.clear(); 
+    
+    navigate('/login', { replace: true });
   };
 
   const navItems = [
@@ -19,7 +23,6 @@ export default function DashboardLayout() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0f172a' }}>
-      {/* Horizontal Navbar Header */}
       <header
         style={{
           display: 'flex',
@@ -32,12 +35,10 @@ export default function DashboardLayout() {
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Brand Title */}
         <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff', margin: 0, letterSpacing: '0.5px' }}>
           RECEPTION HQ
         </h2>
 
-        {/* Horizontal Navigation Links */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {navItems.map((item) => (
             <NavLink
@@ -59,7 +60,6 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
-        {/* Logout Action */}
         <button
           onClick={handleLogout}
           style={{
@@ -78,7 +78,6 @@ export default function DashboardLayout() {
         </button>
       </header>
 
-      {/* Main Content Workspace */}
       <main style={{ flex: 1, padding: '24px', overflowY: 'auto', backgroundColor: '#f8fafc' }}>
         <Outlet />
       </main>
