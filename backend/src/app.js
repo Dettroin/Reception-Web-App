@@ -46,6 +46,10 @@ app.use(
   })
 );
 
+app.get('/', (req, res) => {
+  res.send('Reception Web App API is running smoothly!');
+});
+
 app.use(morgan('dev'));
 app.use(express.json());
 
