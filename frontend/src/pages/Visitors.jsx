@@ -1,9 +1,18 @@
  import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import toast from 'react-hot-toast';
+import Card from '../components/UI/Card';
+import Button from '../components/UI/Button';
+import Input from '../components/UI/Input';
+import Table from '../components/UI/Table';
+import Badge from '../components/UI/Badge';
+import { UserCheck, Edit2, Trash2 } from 'lucide-react';
 
 export default function Visitors() {
   const [visitors, setVisitors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -17,6 +26,7 @@ export default function Visitors() {
       setVisitors(res.data?.data || res.data || []);
     } catch (err) {
       console.error('Error loading visitors:', err.response?.data || err);
+      toast.error('Failed to load visitors.');
     } finally {
       setLoading(false);
     }
@@ -28,149 +38,152 @@ export default function Visitors() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
-      const res = await API.post('/visitors', formData);
-      if (res.data?.success || res.status === 200 || res.status === 201) {
-        setFormData({ name: '', mobile: '', personToMeet: '', purpose: '' });
-        fetchVisitors();
+      if (editingId) {
+        const res = await API.patch(`/visitors/${editingId}`, formData);
+        if (res.data?.success || res.status === 200 || res.status === 201) {
+          toast.success('Visitor updated successfully.');
+        }
+      } else {
+        const res = await API.post('/visitors', formData);
+        if (res.data?.success || res.status === 200 || res.status === 201) {
+          toast.success('Visitor checked in successfully.');
+        }
       }
+      setFormData({ name: '', mobile: '', personToMeet: '', purpose: '' });
+      setEditingId(null);
+      fetchVisitors();
     } catch (err) {
       console.error('Submission Error Details:', err.response?.data || err);
       const serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-
       if (err.response?.status === 401) {
-        alert(`Authentication Failed (401): ${serverMsg}\n\nPlease log out and log back in to refresh your token.`);
+        toast.error(`Authentication Failed. Please log in again.`);
       } else {
-        alert(`Failed to check in visitor: ${serverMsg}`);
+        toast.error(`Failed to ${editingId ? 'update' : 'check in'} visitor: ${serverMsg}`);
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleEdit = (visitor) => {
+    setFormData({
+      name: visitor.name || '',
+      mobile: visitor.mobile || '',
+      personToMeet: visitor.personToMeet || '',
+      purpose: visitor.purpose || '',
+    });
+    setEditingId(visitor._id || visitor.id);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this visitor?')) return;
+    try {
+      await API.delete(`/visitors/${id}`);
+      toast.success('Visitor deleted successfully.');
+      fetchVisitors();
+    } catch (err) {
+      console.error('Error deleting visitor:', err);
+      toast.error('Failed to delete visitor.');
+    }
+  };
+
+  const columns = [
+    { header: 'Name', accessor: 'name', render: (v) => <span style={{ fontWeight: 500 }}>{v.name}</span> },
+    { header: 'Mobile', accessor: 'mobile', render: (v) => v.mobile || '-' },
+    { header: 'Host', accessor: 'personToMeet', render: (v) => v.personToMeet || '-' },
+    { header: 'Purpose', accessor: 'purpose', render: (v) => v.purpose || '-' },
+    { header: 'Status', accessor: 'status', render: (v) => <Badge status={v.status || 'INSIDE'}>{v.status || 'INSIDE'}</Badge> },
+    { 
+      header: 'Actions', 
+      accessor: 'actions', 
+      render: (v) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleEdit(v)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#3b82f6' }} title="Edit">
+            <Edit2 size={16} />
+          </button>
+          <button onClick={() => handleDelete(v._id || v.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#ef4444' }} title="Delete">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ) 
+    }
+  ];
+
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Visitor Management</h1>
-        <p style={styles.headerSubtitle}>Log new entries and track visitors currently on site</p>
+    <div className="flex flex-col gap-6 animate-fade-in">
+      <div>
+        <h1 className="page-title">Visitor Management</h1>
+        <p className="page-subtitle">Log new entries and track visitors currently on site</p>
       </div>
 
-      <div style={styles.sectionCard}>
-        <h3 style={styles.sectionTitle}>Check In New Visitor</h3>
-        <form onSubmit={handleSubmit} style={styles.formGrid}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Visitor Name</label>
-            <input
-              type="text"
-              required
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={styles.input}
+      <div className="grid grid-cols-3 gap-6 md:grid-cols-1">
+        {/* Form Card */}
+        <Card className="span-1">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="section-title" style={{ margin: 0 }}>
+              {editingId ? 'Edit Visitor' : 'Check In Visitor'}
+            </h3>
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  setEditingId(null);
+                  setFormData({ name: '', mobile: '', personToMeet: '', purpose: '' });
+                }}
+                style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <Input 
+              label="Visitor Name" 
+              required 
+              placeholder="John Doe" 
+              value={formData.name} 
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
             />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Mobile Number</label>
-            <input
-              type="text"
-              required
-              placeholder="+1 234 567 890"
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-              style={styles.input}
+            <Input 
+              label="Mobile Number" 
+              required 
+              placeholder="+1 234 567 890" 
+              value={formData.mobile} 
+              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} 
             />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Person To Meet</label>
-            <input
-              type="text"
-              required
-              placeholder="Sarah Connor"
-              value={formData.personToMeet}
-              onChange={(e) => setFormData({ ...formData, personToMeet: e.target.value })}
-              style={styles.input}
+            <Input 
+              label="Person To Meet" 
+              required 
+              placeholder="Sarah Connor" 
+              value={formData.personToMeet} 
+              onChange={(e) => setFormData({ ...formData, personToMeet: e.target.value })} 
             />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Purpose</label>
-            <input
-              type="text"
-              required
-              placeholder="Interview / Meeting"
-              value={formData.purpose}
-              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              style={styles.input}
+            <Input 
+              label="Purpose" 
+              required 
+              placeholder="Interview / Meeting" 
+              value={formData.purpose} 
+              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} 
             />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <button type="submit" style={styles.btnPrimary}>Check In Visitor</button>
-          </div>
-        </form>
-      </div>
+            <div style={{ marginTop: '8px' }}>
+              <Button type="submit" loading={submitting} icon={UserCheck}>
+                {editingId ? 'Update Visitor' : 'Check In Visitor'}
+              </Button>
+            </div>
+          </form>
+        </Card>
 
-      <div style={styles.sectionCard}>
-        <div style={styles.tableHeader}>
-          <h3 style={styles.sectionTitle}>Visitor Records</h3>
-          <span style={styles.recordBadge}>{visitors.length} Total</span>
-        </div>
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>NAME</th>
-                <th style={styles.th}>MOBILE</th>
-                <th style={styles.th}>PERSON TO MEET</th>
-                <th style={styles.th}>PURPOSE</th>
-                <th style={styles.th}>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="5" style={styles.emptyTd}>Loading visitors...</td></tr>
-              ) : visitors.length > 0 ? (
-                visitors.map((v) => (
-                  <tr key={v._id || v.id} style={styles.tr}>
-                    <td style={styles.tdBold}>{v.name}</td>
-                    <td style={styles.td}>{v.mobile || '-'}</td>
-                    <td style={styles.td}>{v.personToMeet || '-'}</td>
-                    <td style={styles.td}>{v.purpose || '-'}</td>
-                    <td style={styles.td}>
-                      <span style={v.status === 'INSIDE' ? styles.badgeSuccess : styles.badgeMuted}>
-                        {v.status || 'INSIDE'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="5" style={styles.emptyTd}>No visitors recorded today.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Table Card */}
+        <Card className="span-2">
+          <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
+            <h3 className="section-title" style={{ margin: 0 }}>Visitor Records</h3>
+            <Badge status="default">{visitors.length} Total</Badge>
+          </div>
+          <Table columns={columns} data={visitors} loading={loading} emptyMessage="No visitors recorded today." />
+        </Card>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: { display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1400px', margin: '0 auto' },
-  header: { marginBottom: '4px' },
-  headerTitle: { fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' },
-  headerSubtitle: { fontSize: '14px', color: '#64748b', margin: 0 },
-  sectionCard: { backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' },
-  sectionTitle: { fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 16px 0' },
-  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase' },
-  input: { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '14px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' },
-  btnPrimary: { padding: '12px 24px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '8px' },
-  tableHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  recordBadge: { fontSize: '12px', fontWeight: '600', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '6px' },
-  tableWrap: { overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-  th: { padding: '12px 16px', fontSize: '11px', fontWeight: '700', color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' },
-  tr: { borderBottom: '1px solid #f1f5f9' },
-  td: { padding: '14px 16px', fontSize: '14px', color: '#334155' },
-  tdBold: { padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' },
-  emptyTd: { padding: '24px 16px', fontSize: '14px', color: '#94a3b8', textAlign: 'center' },
-  badgeSuccess: { backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '700' },
-  badgeMuted: { backgroundColor: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '700' },
-};

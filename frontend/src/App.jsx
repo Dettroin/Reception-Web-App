@@ -1,5 +1,6 @@
  import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -21,25 +22,39 @@ const ProtectedRoute = () => {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Root path defaults strictly to /login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+    <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            borderRadius: '12px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: '500'
+          }
+        }} 
+      />
+      <Routes>
+        {/* Root path defaults strictly to /login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-      {/* Protected Routes Group */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/visitors" element={<Visitors />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/enquiries" element={<Enquiries />} />
-          <Route path="/calls" element={<Calls />} />
+        {/* Protected Routes Group */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/visitors" element={<Visitors />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/enquiries" element={<Enquiries />} />
+            <Route path="/calls" element={<Calls />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Catch-all fallback */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </>
   );
 }

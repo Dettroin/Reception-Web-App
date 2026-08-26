@@ -35,9 +35,12 @@ export const register = async (req, res, next) => {
       active: true,
     });
 
+    const token = generateToken(user);
+
     res.status(201).json({
       success: true,
       message: 'Registration successful!',
+      token,
       data: { id: user._id, name: user.name, email: user.email },
     });
   } catch (error) {

@@ -1,11 +1,19 @@
  import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import toast from 'react-hot-toast';
+import Card from '../components/UI/Card';
+import Button from '../components/UI/Button';
+import Input from '../components/UI/Input';
+import Table from '../components/UI/Table';
+import Badge from '../components/UI/Badge';
+import { CalendarPlus, Edit2, Trash2 } from 'lucide-react';
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
-  // State updated to match backend Mongoose schema exactly
   const [formData, setFormData] = useState({ 
     visitorName: '', 
     mobile: '',
@@ -22,6 +30,7 @@ export default function Appointments() {
       setAppointments(res.data?.data || res.data || []);
     } catch (err) {
       console.error('Error loading appointments:', err);
+      toast.error('Failed to load appointments.');
     } finally {
       setLoading(false);
     }
@@ -33,11 +42,15 @@ export default function Appointments() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setSubmitting(true);
     try {
-      await API.post('/appointments', formData);
-      
-      // Reset form state after success
+      if (editingId) {
+        await API.patch(`/appointments/${editingId}`, formData);
+        toast.success('Appointment updated successfully.');
+      } else {
+        await API.post('/appointments', formData);
+        toast.success('Appointment scheduled successfully.');
+      }
       setFormData({ 
         visitorName: '', 
         mobile: '', 
@@ -47,283 +60,159 @@ export default function Appointments() {
         time: '', 
         purpose: '' 
       });
+      setEditingId(null);
       fetchAppointments();
     } catch (err) {
       console.error('API Error Details:', err.response?.data || err);
-      alert(err.response?.data?.message || 'Failed to schedule appointment.');
+      toast.error(err.response?.data?.message || `Failed to ${editingId ? 'update' : 'schedule'} appointment.`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleEdit = (appointment) => {
+    setFormData({
+      visitorName: appointment.visitorName || '',
+      mobile: appointment.mobile || '',
+      meetingWith: appointment.meetingWith || '',
+      department: appointment.department || '',
+      date: appointment.date ? new Date(appointment.date).toISOString().split('T')[0] : '',
+      time: appointment.time || '',
+      purpose: appointment.purpose || '',
+    });
+    setEditingId(appointment._id || appointment.id);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this appointment?')) return;
+    try {
+      await API.delete(`/appointments/${id}`);
+      toast.success('Appointment deleted successfully.');
+      fetchAppointments();
+    } catch (err) {
+      console.error('Error deleting appointment:', err);
+      toast.error('Failed to delete appointment.');
+    }
+  };
+
+  const columns = [
+    { header: 'Visitor', accessor: 'visitorName', render: (a) => <span style={{ fontWeight: 500 }}>{a.visitorName}</span> },
+    { header: 'Mobile', accessor: 'mobile', render: (a) => a.mobile || '-' },
+    { header: 'Meeting With', accessor: 'meetingWith', render: (a) => a.meetingWith || '-' },
+    { header: 'Dept', accessor: 'department', render: (a) => a.department || '-' },
+    { header: 'Date', accessor: 'date', render: (a) => a.date ? new Date(a.date).toLocaleDateString() : '-' },
+    { header: 'Time', accessor: 'time', render: (a) => a.time || '-' },
+    { header: 'Status', accessor: 'status', render: (a) => <Badge status={a.status || 'SCHEDULED'}>{a.status || 'SCHEDULED'}</Badge> },
+    { 
+      header: 'Actions', 
+      accessor: 'actions', 
+      render: (a) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleEdit(a)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#3b82f6' }} title="Edit">
+            <Edit2 size={16} />
+          </button>
+          <button onClick={() => handleDelete(a._id || a.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#ef4444' }} title="Delete">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ) 
+    }
+  ];
+
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Appointments</h1>
-        <p style={styles.headerSubtitle}>Schedule and oversee upcoming visitor meetings</p>
+    <div className="flex flex-col gap-6 animate-fade-in">
+      <div>
+        <h1 className="page-title">Appointments</h1>
+        <p className="page-subtitle">Schedule and oversee upcoming visitor meetings</p>
       </div>
 
-      <div style={styles.sectionCard}>
-        <h3 style={styles.sectionTitle}>Schedule New Appointment</h3>
-        <form onSubmit={handleSubmit} style={styles.formGrid}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Visitor Name *</label>
-            <input 
-              type="text" 
+      <div className="grid grid-cols-3 gap-6 md:grid-cols-1">
+        <Card className="span-1">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="section-title" style={{ margin: 0 }}>
+              {editingId ? 'Edit Appointment' : 'Schedule New Appointment'}
+            </h3>
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  setEditingId(null);
+                  setFormData({ visitorName: '', mobile: '', meetingWith: '', department: '', date: '', time: '', purpose: '' });
+                }}
+                style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <Input 
+              label="Visitor Name" 
               required 
               placeholder="Alice Johnson" 
               value={formData.visitorName} 
               onChange={(e) => setFormData({ ...formData, visitorName: e.target.value })} 
-              style={styles.input} 
             />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Mobile Number *</label>
-            <input 
-              type="tel" 
+            <Input 
+              label="Mobile Number" 
               required 
+              type="tel"
               placeholder="9876543210" 
               value={formData.mobile} 
               onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} 
-              style={styles.input} 
             />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Meeting With (Host) *</label>
-            <input 
-              type="text" 
+            <Input 
+              label="Meeting With (Host)" 
               required 
               placeholder="Manager Name" 
               value={formData.meetingWith} 
               onChange={(e) => setFormData({ ...formData, meetingWith: e.target.value })} 
-              style={styles.input} 
             />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Department</label>
-            <input 
-              type="text" 
+            <Input 
+              label="Department" 
               placeholder="HR / IT / Admin" 
               value={formData.department} 
               onChange={(e) => setFormData({ ...formData, department: e.target.value })} 
-              style={styles.input} 
             />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Date *</label>
-            <input 
-              type="date" 
-              required 
-              value={formData.date} 
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
-              style={styles.input} 
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Time *</label>
-            <input 
-              type="time" 
-              required 
-              value={formData.time} 
-              onChange={(e) => setFormData({ ...formData, time: e.target.value })} 
-              style={styles.input} 
-            />
-          </div>
-
-          <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
-            <label style={styles.label}>Purpose</label>
-            <input 
-              type="text" 
+            <div className="grid grid-cols-2 gap-4">
+              <Input 
+                label="Date" 
+                required 
+                type="date"
+                value={formData.date} 
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
+              />
+              <Input 
+                label="Time" 
+                required 
+                type="time"
+                value={formData.time} 
+                onChange={(e) => setFormData({ ...formData, time: e.target.value })} 
+              />
+            </div>
+            <Input 
+              label="Purpose" 
               placeholder="Interview, Client Meeting, etc." 
               value={formData.purpose} 
               onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} 
-              style={styles.input} 
             />
-          </div>
+            <div style={{ marginTop: '8px' }}>
+              <Button type="submit" loading={submitting} icon={CalendarPlus}>
+                {editingId ? 'Update Appointment' : 'Schedule Appointment'}
+              </Button>
+            </div>
+          </form>
+        </Card>
 
-          <div style={{ gridColumn: '1 / -1' }}>
-            <button type="submit" style={styles.btnPrimary}>Schedule Appointment</button>
+        <Card className="span-2">
+          <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
+            <h3 className="section-title" style={{ margin: 0 }}>Scheduled Appointments</h3>
+            <Badge status="default">{appointments.length} Total</Badge>
           </div>
-        </form>
-      </div>
-
-      <div style={styles.sectionCard}>
-        <div style={styles.tableHeader}>
-          <h3 style={styles.sectionTitle}>Scheduled Appointments</h3>
-          <span style={styles.recordBadge}>{appointments.length} Total</span>
-        </div>
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>VISITOR</th>
-                <th style={styles.th}>MOBILE</th>
-                <th style={styles.th}>MEETING WITH</th>
-                <th style={styles.th}>DEPT</th>
-                <th style={styles.th}>DATE</th>
-                <th style={styles.th}>TIME</th>
-                <th style={styles.th}>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="7" style={styles.emptyTd}>Loading appointments...</td></tr>
-              ) : appointments.length > 0 ? (
-                appointments.map((a) => (
-                  <tr key={a._id || a.id} style={styles.tr}>
-                    <td style={styles.tdBold}>{a.visitorName}</td>
-                    <td style={styles.td}>{a.mobile}</td>
-                    <td style={styles.td}>{a.meetingWith}</td>
-                    <td style={styles.td}>{a.department || '-'}</td>
-                    <td style={styles.td}>{a.date ? new Date(a.date).toLocaleDateString() : '-'}</td>
-                    <td style={styles.td}>{a.time || '-'}</td>
-                    <td style={styles.td}>
-                      <span style={styles.badgePurple}>{a.status || 'SCHEDULED'}</span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="7" style={styles.emptyTd}>No appointments scheduled today.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+          <Table columns={columns} data={appointments} loading={loading} emptyMessage="No appointments scheduled." />
+        </Card>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
-    maxWidth: '1400px',
-    margin: '0 auto',
-  },
-  header: {
-    marginBottom: '4px',
-  },
-  headerTitle: {
-    fontSize: '24px',
-    fontWeight: '800',
-    color: '#0f172a',
-    margin: '0 0 4px 0',
-  },
-  headerSubtitle: {
-    fontSize: '14px',
-    color: '#64748b',
-    margin: 0,
-  },
-  sectionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '24px',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#0f172a',
-    margin: '0 0 16px 0',
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '16px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#475569',
-    textTransform: 'uppercase',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 14px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    backgroundColor: '#f8fafc',
-    fontSize: '14px',
-    color: '#0f172a',
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  btnPrimary: {
-    padding: '12px 24px',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    marginTop: '8px',
-  },
-  tableHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  recordBadge: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
-    padding: '4px 10px',
-    borderRadius: '6px',
-  },
-  tableWrap: {
-    overflowX: 'auto',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    textAlign: 'left',
-  },
-  th: {
-    padding: '12px 16px',
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#64748b',
-    backgroundColor: '#f8fafc',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  tr: {
-    borderBottom: '1px solid #f1f5f9',
-  },
-  td: {
-    padding: '14px 16px',
-    fontSize: '14px',
-    color: '#334155',
-  },
-  tdBold: {
-    padding: '14px 16px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  emptyTd: {
-    padding: '24px 16px',
-    fontSize: '14px',
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  badgePurple: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    color: '#7c3aed',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '700',
-  },
-};
+

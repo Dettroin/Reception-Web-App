@@ -66,8 +66,8 @@ export const createVisitor = async (req, res, next) => {
     }
     const body = parsed.data;
 
-    const count = await Visitor.countDocuments({ user: req.user._id });
     const year = new Date().getFullYear();
+    const count = await Visitor.countDocuments();
     const seq = String(count + 1).padStart(5, '0');
     const visitorId = `VIS-${year}-${seq}`;
 
