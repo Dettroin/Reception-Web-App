@@ -1,10 +1,11 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import StatCard from '../components/Dashboard/StatCard';
 import DashboardCharts from '../components/Dashboard/DashboardCharts';
 import Table from '../components/UI/Table';
 import Badge from '../components/UI/Badge';
-import { Users, UserCheck, Calendar, MessageSquare, PhoneCall } from 'lucide-react';
+import Card from '../components/UI/Card';
+import { Users, UserCheck, Calendar, MessageSquare } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -58,14 +59,14 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="loading-overlay">
-        <div style={{ width: '32px', height: '32px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <div className="flex justify-center items-center h-64">
+        <div className="w-10 h-10 border-4 border-surface border-t-primary rounded-full animate-spin"></div>
       </div>
     );
   }
 
   const visitorColumns = [
-    { header: 'Name', accessor: 'name', render: (v) => <span style={{ fontWeight: 500 }}>{v.name || v.visitorName}</span> },
+    { header: 'Name', accessor: 'name', render: (v) => <span className="font-semibold text-text-primary">{v.name || v.visitorName}</span> },
     { header: 'Mobile', accessor: 'mobile', render: (v) => v.mobile || v.phone || '-' },
     { header: 'Host', accessor: 'personToMeet', render: (v) => v.personToMeet || v.meetingWith || '-' },
     { header: 'Entry', accessor: 'entryTime', render: (v) => v.entryTime || v.time || 'Just now' },
@@ -73,15 +74,17 @@ export default function Dashboard() {
   ];
 
   const enquiryColumns = [
-    { header: 'Name', accessor: 'name', render: (e) => <span style={{ fontWeight: 500 }}>{e.name}</span> },
+    { header: 'Name', accessor: 'name', render: (e) => <span className="font-semibold text-text-primary">{e.name}</span> },
     { header: 'Mobile', accessor: 'mobile', render: (e) => e.mobile || '-' },
     { header: 'Type', accessor: 'enquiryType', render: (e) => e.enquiryType || e.type || 'General' },
     { header: 'Status', accessor: 'status', render: (e) => <Badge status={e.status || 'NEW'}>{e.status || 'NEW'}</Badge> },
   ];
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="grid grid-cols-4 gap-4 md:grid-cols-2">
+    <div className="flex flex-col gap-8 animate-fade-in">
+      
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Visitors" 
           value={stats.totalVisitors} 
@@ -96,7 +99,7 @@ export default function Dashboard() {
           colorClass="success" 
         />
         <StatCard 
-          title="Appointments" 
+          title="Appointments Today" 
           value={stats.appointmentsToday} 
           icon={Calendar} 
           colorClass="info" 
@@ -109,25 +112,28 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Chart Row */}
       <div className="grid grid-cols-1">
         <DashboardCharts />
       </div>
 
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-1">
-        <div>
-          <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
-            <h3 className="section-title" style={{ margin: 0 }}>Recent Visitors</h3>
+      {/* Tables Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card padding="p-0">
+          <div className="p-6 border-b border-border flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-primary">Recent Visitors</h3>
           </div>
           <Table columns={visitorColumns} data={recentVisitors} emptyMessage="No visitors recorded today" />
-        </div>
+        </Card>
         
-        <div>
-          <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
-            <h3 className="section-title" style={{ margin: 0 }}>Pending Enquiries</h3>
+        <Card padding="p-0">
+          <div className="p-6 border-b border-border flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-primary">Recent Enquiries</h3>
           </div>
           <Table columns={enquiryColumns} data={recentEnquiries} emptyMessage="No pending enquiries" />
-        </div>
+        </Card>
       </div>
+
     </div>
   );
 }
