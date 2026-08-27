@@ -1,44 +1,22 @@
 import React from 'react';
 
-const Badge = ({ children, status = 'default', className = '', ...props }) => {
+const Badge = ({ children, status = 'default', className = '' }) => {
   const getStatusColor = () => {
-    switch (status.toUpperCase()) {
-      case 'INSIDE':
-      case 'CONFIRMED':
-      case 'RESOLVED':
-        return { bg: 'var(--success-bg)', color: 'var(--success)' };
-      case 'PENDING':
-      case 'SCHEDULED':
-      case 'IN PROGRESS':
-        return { bg: 'var(--warning-bg)', color: 'var(--warning)' };
-      case 'CHECKED OUT':
-      case 'COMPLETED':
-        return { bg: '#f1f5f9', color: 'var(--text-secondary)' };
-      case 'CANCELLED':
-        return { bg: 'var(--danger-bg)', color: 'var(--danger)' };
-      default:
-        return { bg: 'var(--info-bg)', color: 'var(--info)' };
-    }
+    const s = status.toUpperCase();
+    if (['INSIDE', 'CONFIRMED', 'RESOLVED', 'ACTIVE', 'SUCCESS'].includes(s)) 
+      return 'bg-status-success/20 text-emerald-300 border-status-success/40 shadow-successGlow backdrop-blur-md';
+    if (['PENDING', 'IN PROGRESS', 'SCHEDULED'].includes(s)) 
+      return 'bg-status-warning/20 text-amber-300 border-status-warning/40 shadow-[0_0_10px_rgba(245,158,11,0.3)] backdrop-blur-md';
+    if (['CHECKED OUT', 'CLOSED', 'CANCELLED', 'FAILED'].includes(s)) 
+      return 'bg-white/10 text-slate-300 border-white/20 backdrop-blur-md';
+    if (['NEW', 'INFO'].includes(s)) 
+      return 'bg-primary/20 text-blue-300 border-primary/40 shadow-[0_0_10px_rgba(59,130,246,0.3)] backdrop-blur-md';
+    
+    return 'bg-white/20 text-white border-white/30 backdrop-blur-md'; // Default
   };
 
-  const style = getStatusColor();
-
   return (
-    <span 
-      className={`badge ${className}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '4px 10px',
-        borderRadius: '9999px', /* Pill shape */
-        fontSize: '12px',
-        fontWeight: '600',
-        backgroundColor: style.bg,
-        color: style.color,
-        letterSpacing: '0.02em',
-      }}
-      {...props}
-    >
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border border-solid ${getStatusColor()} ${className}`}>
       {children}
     </span>
   );

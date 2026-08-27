@@ -1,17 +1,9 @@
 import React from 'react';
 
-const Card = ({ children, className = '', style = {}, ...props }) => {
+const Card = ({ children, className = '', padding = 'p-6', ...props }) => {
   return (
     <div 
-      className={`card ${className}`} 
-      style={{
-        background: 'var(--surface)',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--shadow-md)',
-        border: '1px solid var(--border)',
-        padding: '24px',
-        ...style
-      }}
+      className={`glass-panel ${padding} ${className}`}
       {...props}
     >
       {children}

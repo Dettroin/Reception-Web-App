@@ -14,25 +14,25 @@ const data = [
 
 const DashboardCharts = () => {
   return (
-    <Card className="span-4" style={{ height: '320px', display: 'flex', flexDirection: 'column' }}>
-      <h3 className="section-title" style={{ marginBottom: '24px' }}>Visitor Activity (Last 7 Days)</h3>
-      <div style={{ flex: 1, width: '100%' }}>
+    <Card className="h-[360px] flex flex-col">
+      <h3 className="text-lg font-bold text-text-primary mb-6">Visitor Activity (Last 7 Days)</h3>
+      <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569' }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569' }} />
             <Tooltip 
-              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-md)' }}
-              itemStyle={{ color: 'var(--primary)', fontWeight: '600' }}
+              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.1)', fontWeight: '600' }}
+              itemStyle={{ color: '#2563eb' }}
             />
-            <Area type="monotone" dataKey="visitors" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorVisitors)" />
+            <Area type="monotone" dataKey="visitors" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorVisitors)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

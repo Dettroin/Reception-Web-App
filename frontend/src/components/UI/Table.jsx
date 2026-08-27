@@ -1,89 +1,55 @@
 import React from 'react';
 
-const Table = ({ columns, data, loading, emptyMessage = "No records found." }) => {
+const Table = ({ columns, data, loading, emptyMessage = 'No records found.' }) => {
+  if (loading) {
+    return (
+      <div className="w-full h-48 flex items-center justify-center bg-white/10 rounded-2xl animate-pulse backdrop-blur-sm border border-white/20">
+        <span className="text-text-muted font-bold tracking-wider">Loading data...</span>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full py-12 flex flex-col items-center justify-center text-center bg-white/10 rounded-2xl border-2 border-dashed border-white/30 backdrop-blur-sm">
+        <span className="text-text-secondary font-bold tracking-wider">{emptyMessage}</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="table-wrap" style={{ 
-      overflowX: 'auto', 
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      backgroundColor: 'var(--surface)'
-    }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+    <div className="overflow-x-auto rounded-b-2xl">
+      <table className="w-full text-left border-collapse">
         <thead>
-          <tr>
-            {columns.map((col, index) => (
+          <tr className="bg-white/20 backdrop-blur-md border-b border-white/30 shadow-sm">
+            {columns.map((col, idx) => (
               <th 
-                key={index}
-                style={{
-                  padding: '12px 16px',
-                  backgroundColor: '#f8fafc',
-                  borderBottom: '1px solid var(--border)',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: 'var(--text-secondary)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}
+                key={idx} 
+                className="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-widest whitespace-nowrap"
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan={columns.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '24px', height: '24px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  <span>Loading data...</span>
-                </div>
-              </td>
+        <tbody className="divide-y divide-white/20">
+          {data.map((row, rowIndex) => (
+            <tr 
+              key={rowIndex} 
+              className="group hover:bg-white/30 transition-all duration-300 cursor-default backdrop-blur-sm relative"
+            >
+              {columns.map((col, colIndex) => (
+                <td 
+                  key={colIndex} 
+                  className="px-6 py-4 text-sm text-text-primary whitespace-nowrap font-medium group-hover:text-black transition-colors"
+                >
+                  {col.render ? col.render(row) : row[col.accessor]}
+                </td>
+              ))}
             </tr>
-          ) : data && data.length > 0 ? (
-            data.map((row, rowIndex) => (
-              <tr 
-                key={row.id || row._id || rowIndex} 
-                style={{ 
-                  borderBottom: rowIndex === data.length - 1 ? 'none' : '1px solid var(--border)',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                {columns.map((col, colIndex) => (
-                  <td 
-                    key={colIndex}
-                    style={{
-                      padding: '16px',
-                      fontSize: '14px',
-                      color: 'var(--text-primary)',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {col.render ? col.render(row) : row[col.accessor]}
-                  </td>
-                ))}
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={columns.length} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="9" y1="3" x2="9" y2="21"></line>
-                  </svg>
-                  <span>{emptyMessage}</span>
-                </div>
-              </td>
-            </tr>
-          )}
+          ))}
         </tbody>
       </table>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      `}} />
     </div>
   );
 };
