@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ['Admin', 'Receptionist'], default: 'Receptionist' },
     active: { type: Boolean, default: true },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );

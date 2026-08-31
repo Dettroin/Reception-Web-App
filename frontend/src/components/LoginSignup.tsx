@@ -174,14 +174,17 @@ function Scene({ isLampOn }: { isLampOn: boolean }) {
 interface LoginSignupProps {
   onLogin?: (email: string, password: string) => void;
   onSignup?: (name: string, email: string, password: string) => void;
+  onForgotPassword?: (email: string) => Promise<any>;
+  onResetPassword?: (email: string, code: string, password: string) => Promise<any>;
   error?: string;
 }
 
-export default function Component({ onLogin, onSignup, error }: LoginSignupProps) {
-  const [isLogin, setIsLogin] = useState(true);
+export default function Component({ onLogin, onSignup, onForgotPassword, onResetPassword, error }: LoginSignupProps) {
+  const [view, setView] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -193,10 +196,21 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
     e.preventDefault();
     setIsLoading(true);
     try {
-      if (isLogin && onLogin) {
+      if (view === 'login' && onLogin) {
         await onLogin(email, password);
-      } else if (!isLogin && onSignup) {
+      } else if (view === 'signup' && onSignup) {
         await onSignup(name, email, password);
+      } else if (view === 'forgot' && onForgotPassword) {
+        const res = await onForgotPassword(email);
+        toast.success(res.message || 'Reset code sent to your email');
+        if (res.data?.code) {
+           // Auto-fill in dev mode for ease of testing
+           setCode(res.data.code);
+        }
+        setView('reset');
+      } else if (view === 'reset' && onResetPassword) {
+        await onResetPassword(email, code, password);
+        toast.success('Password reset successfully!');
       }
     } finally {
       setIsLoading(false);
@@ -341,12 +355,16 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
               R
             </div>
             <h1 className="text-3xl font-heading font-bold text-slate-900 mb-2">
-              {isLogin ? 'Welcome back' : 'Create an account'}
+              {view === 'login' && 'Welcome back'}
+              {view === 'signup' && 'Create an account'}
+              {view === 'forgot' && 'Reset Password'}
+              {view === 'reset' && 'Enter Reset Code'}
             </h1>
             <p className="text-slate-500 font-medium">
-              {isLogin 
-                ? 'Enter your details to access your dashboard.' 
-                : 'Sign up to start managing your reception seamlessly.'}
+              {view === 'login' && 'Enter your details to access your dashboard.'}
+              {view === 'signup' && 'Sign up to start managing your reception seamlessly.'}
+              {view === 'forgot' && 'Enter your email and we will send you a 6-digit reset code.'}
+              {view === 'reset' && 'Enter the 6-digit code sent to your email and your new password.'}
             </p>
           </div>
 
@@ -361,7 +379,7 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
             )}
 
             {/* Name Input (Signup Only) */}
-            {!isLogin && (
+            {view === 'signup' && (
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Full Name</label>
                 <input
@@ -383,35 +401,56 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400 font-medium"
+                disabled={view === 'reset'}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400 font-medium disabled:opacity-50"
                 required
               />
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">Password</label>
-              <div className="relative">
+            {/* Code Input (Reset Only) */}
+            {view === 'reset' && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">6-Digit Reset Code</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400 font-medium pr-10"
+                  type="text"
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400 font-medium tracking-widest text-center text-lg"
                   required
+                  maxLength={6}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
               </div>
-            </div>
+            )}
+
+            {/* Password Input */}
+            {view !== 'forgot' && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">
+                  {view === 'reset' ? 'New Password' : 'Password'}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400 font-medium pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Remember Me & Forgot Password */}
-            {isLogin && (
+            {view === 'login' && (
               <div className="flex items-center justify-between pt-1">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center justify-center">
@@ -425,9 +464,9 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
                   </div>
                   <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">Remember me</span>
                 </label>
-                <a href="#" className="text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
+                <button type="button" onClick={() => setView('forgot')} className="text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
                   Forgot password?
-                </a>
+                </button>
               </div>
             )}
 
@@ -438,47 +477,67 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
               className="w-full py-2.5 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg font-semibold shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none mt-2"
             >
               {isLoading && <Loader2 size={18} className="animate-spin" />}
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {view === 'login' && 'Sign In'}
+              {view === 'signup' && 'Create Account'}
+              {view === 'forgot' && 'Send Reset Code'}
+              {view === 'reset' && 'Reset Password'}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-8">
-            <div className="h-px bg-slate-200 flex-1"></div>
-            <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">or continue with</span>
-            <div className="h-px bg-slate-200 flex-1"></div>
-          </div>
+          {view !== 'forgot' && view !== 'reset' && (
+            <>
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-8">
+                <div className="h-px bg-slate-200 flex-1"></div>
+                <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">or continue with</span>
+                <div className="h-px bg-slate-200 flex-1"></div>
+              </div>
 
-          {/* Social Logins */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('Google')}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700 text-sm bg-white shadow-sm"
-            >
-              {GoogleIcon}
-              Google
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('Microsoft')}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700 text-sm bg-white shadow-sm"
-            >
-              <svg viewBox="0 0 21 21" className="w-5 h-5 flex-shrink-0"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
-              Microsoft
-            </button>
-          </div>
+              {/* Social Logins */}
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('Google')}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700 text-sm bg-white shadow-sm"
+                >
+                  {GoogleIcon}
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('Microsoft')}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700 text-sm bg-white shadow-sm"
+                >
+                  <svg viewBox="0 0 21 21" className="w-5 h-5 flex-shrink-0"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
+                  Microsoft
+                </button>
+              </div>
+            </>
+          )}
 
-          {/* Toggle Login/Signup */}
-          <p className="text-center text-sm font-medium text-slate-600">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:text-primary-hover font-semibold transition-colors"
-            >
-              {isLogin ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
+          {/* Toggle Login/Signup/Forgot */}
+          <div className="mt-8">
+            <p className="text-center text-sm font-medium text-slate-600">
+              {view === 'login' && (
+                <>
+                  Don't have an account?{' '}
+                  <button type="button" onClick={() => setView('signup')} className="text-primary hover:text-primary-hover font-semibold transition-colors">Sign up</button>
+                </>
+              )}
+              {view === 'signup' && (
+                <>
+                  Already have an account?{' '}
+                  <button type="button" onClick={() => setView('login')} className="text-primary hover:text-primary-hover font-semibold transition-colors">Sign in</button>
+                </>
+              )}
+              {(view === 'forgot' || view === 'reset') && (
+                <>
+                  Remembered your password?{' '}
+                  <button type="button" onClick={() => setView('login')} className="text-primary hover:text-primary-hover font-semibold transition-colors">Back to login</button>
+                </>
+              )}
+            </p>
+          </div>
 
           {/* Footer Terms */}
           <p className="text-xs text-center text-slate-400 mt-8 leading-relaxed max-w-[280px] mx-auto">
