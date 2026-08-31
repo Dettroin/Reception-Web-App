@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { AppError } from '../middlewares/errorHandler.js';
+import User from '../models/User.js';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
