@@ -11,6 +11,7 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 import enquiryRoutes from './routes/enquiryRoutes.js';
 import callLogRoutes from './routes/callLogRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import { apiLimiter, authLimiter } from './middlewares/rateLimiter.js';
 
 dotenv.config();
 
@@ -93,7 +94,11 @@ app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
 // 3. API Routes
-app.use('/api/auth', authRoutes);
+// Apply moderate rate limiter to all API routes
+app.use('/api/', apiLimiter);
+
+// Apply strict rate limiter to auth routes
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/enquiries', enquiryRoutes);

@@ -9,4 +9,4 @@ export const createEnquirySchema = z.object({
   assignedTo: z.string().optional(),
   followUpDate: z.string().optional(),
   remarks: z.string().optional(),
-});
+}).strict();

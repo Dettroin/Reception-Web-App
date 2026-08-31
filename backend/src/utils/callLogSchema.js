@@ -8,4 +8,4 @@ export const createCallLogSchema = z.object({
   purpose: z.string().optional().or(z.literal('')),
   remarks: z.string().optional().or(z.literal('')),
   dateTime: z.string().optional().or(z.literal('')),
-});
+}).strict();

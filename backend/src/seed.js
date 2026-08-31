@@ -1,9 +1,13 @@
-﻿ import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import User from './models/User.js'; // Adjust path as needed
 
 const seedAdminUser = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/reception_db');
+    if (!process.env.MONGO_URI) {
+      throw new Error('FATAL ERROR: MONGO_URI is not defined in environment variables.');
+    }
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB Connected for seeding');
 
     const existingUser = await User.findOne({ email: 'admin@reception.com' });
     if (existingUser) {

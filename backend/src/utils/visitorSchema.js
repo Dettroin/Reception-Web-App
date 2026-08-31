@@ -12,4 +12,4 @@ export const createVisitorSchema = z.object({
   idProofNumber: z.string().optional(),
   remarks: z.string().optional(),
   entryTime: z.string().optional(),
-});
+}).strict();

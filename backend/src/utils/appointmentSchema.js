@@ -9,4 +9,4 @@ export const createAppointmentSchema = z.object({
   time: z.string().min(1),
   purpose: z.string().optional(),
   notes: z.string().optional(),
-});
+}).strict();

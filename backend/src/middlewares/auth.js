@@ -11,8 +11,10 @@ export const auth = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      // Fixed secret key to match authController fallback ('supersecretkey')
-      const secret = process.env.JWT_SECRET || 'supersecretkey';
+      if (!process.env.JWT_SECRET) {
+        throw new Error('FATAL ERROR: JWT_SECRET is not defined in environment variables.');
+      }
+      const secret = process.env.JWT_SECRET;
 
       // Verify token
       const decoded = jwt.verify(token, secret);
