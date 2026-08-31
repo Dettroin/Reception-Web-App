@@ -41,19 +41,10 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Routes Group */}
+        {/* Protected Routes Group - Single Catch-All to prevent remounting */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/visitors" element={<Visitors />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/enquiries" element={<Enquiries />} />
-            <Route path="/calls" element={<Calls />} />
-          </Route>
+          <Route path="*" element={<DashboardLayout />} />
         </Route>
-
-        {/* Catch-all fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </>
   );

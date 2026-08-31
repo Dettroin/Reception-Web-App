@@ -4,11 +4,25 @@ import { Bell, Search, User, Menu, LogOut, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import API from '../../services/api';
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, activeSection }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const path = location.pathname.split('/').filter(Boolean).pop();
-  const pageTitle = path ? path.charAt(0).toUpperCase() + path.slice(1) : 'Dashboard';
+  
+  // Use activeSection if provided, otherwise fallback to path
+  const getPageTitle = (section) => {
+    switch(section) {
+      case 'dashboard': return 'Dashboard';
+      case 'visitors': return 'Visitors';
+      case 'appointments': return 'Appointments';
+      case 'enquiries': return 'Enquiries';
+      case 'calls': return 'Call Log';
+      default: 
+        const path = location.pathname.split('/').filter(Boolean).pop();
+        return path ? path.charAt(0).toUpperCase() + path.slice(1) : 'Dashboard';
+    }
+  };
+  
+  const pageTitle = getPageTitle(activeSection);
 
   const [user, setUser] = useState({ name: 'User', role: 'Staff' });
   const [notifications, setNotifications] = useState([]);
@@ -17,7 +31,7 @@ const Header = ({ onMenuClick }) => {
   
   const notifRef = useRef();
   const profileRef = useRef();
-  const latestNotifDate = useRef(Date.now());
+  const latestNotifDate = useRef(0);
   const initialFetchDone = useRef(false);
 
   useEffect(() => {

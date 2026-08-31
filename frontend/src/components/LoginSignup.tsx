@@ -129,7 +129,7 @@ function FloatingElements() {
   );
 }
 
-function Scene() {
+function Scene({ isLampOn }: { isLampOn: boolean }) {
   const mouse = useRef({ x: 0, y: 0 });
 
   useFrame((state) => {
@@ -144,25 +144,27 @@ function Scene() {
 
   return (
     <>
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={isLampOn ? 0.5 : 0.1} />
       <directionalLight 
         position={[5, 10, 5]} 
-        intensity={1} 
+        intensity={isLampOn ? 1 : 0.2} 
         castShadow 
         shadow-mapSize={[1024, 1024]}
       />
       
       {/* Environment lighting to give that premium studio look */}
-      <Environment preset="city">
-        <Lightformer intensity={2} rotation-y={Math.PI / 2} position={[-5, 2, -1]} scale={[10, 2, 1]} />
-        <Lightformer intensity={2} rotation-y={Math.PI / 2} position={[5, 2, -1]} scale={[10, 2, 1]} />
-      </Environment>
+      {isLampOn && (
+        <Environment preset="city">
+          <Lightformer intensity={2} rotation-y={Math.PI / 2} position={[-5, 2, -1]} scale={[10, 2, 1]} />
+          <Lightformer intensity={2} rotation-y={Math.PI / 2} position={[5, 2, -1]} scale={[10, 2, 1]} />
+        </Environment>
+      )}
 
       <ReceptionDesk />
       <FloatingElements />
       
       {/* Soft floor shadow */}
-      <ContactShadows position={[0, -1.01, 0]} opacity={0.6} scale={10} blur={2.5} far={4} />
+      <ContactShadows position={[0, -1.01, 0]} opacity={isLampOn ? 0.6 : 0.2} scale={10} blur={2.5} far={4} />
     </>
   );
 }
@@ -183,6 +185,9 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
+  // State for the interactive lamp
+  const [isLampOn, setIsLampOn] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +219,10 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
     }, 1500);
   };
 
+  const toggleLamp = () => {
+    setIsLampOn(prev => !prev);
+  };
+
   /* Icons */
   const GoogleIcon = (
     <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
@@ -225,16 +234,109 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
   );
 
   return (
-    <div className="min-h-screen w-full flex bg-slate-50 relative overflow-hidden font-sans text-slate-900">
+    <div className="min-h-screen w-full flex bg-slate-900 relative overflow-hidden font-sans text-slate-900">
       
-      {/* 
-        LEFT SIDE (Form) 
-      */}
-      <div className="w-full lg:w-[500px] xl:w-[550px] relative z-10 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 bg-white/70 lg:bg-white backdrop-blur-xl lg:backdrop-blur-none border-r border-white/40 shadow-[20px_0_40px_rgba(0,0,0,0.05)]">
+      {/* Dark Overlay for the entire screen when lamp is OFF */}
+      <div 
+        className={`absolute inset-0 bg-slate-950/85 transition-opacity duration-1000 z-10 pointer-events-none 
+        ${isLampOn ? 'opacity-0' : 'opacity-100'}`}
+      ></div>
+
+      {/* Dark Overlay for the entire screen when lamp is OFF */}
+      <div 
+        className={`absolute inset-0 bg-slate-950/85 transition-opacity duration-1000 z-10 pointer-events-none 
+        ${isLampOn ? 'opacity-0' : 'opacity-100'}`}
+      ></div>
+
+      {/* Premium CSS-Drawn Glass Globe Pendant Lamp */}
+      <div className="absolute top-0 left-[65%] lg:left-1/2 lg:-translate-x-1/2 z-40 flex flex-col items-center drop-shadow-xl pointer-events-none">
         
-        <div className="w-full max-w-[400px] mx-auto">
+        {/* Emergent Light Beam (Triangle Spread) */}
+        <div 
+          className={`absolute top-[175px] left-1/2 -translate-x-1/2 w-[1600px] h-[1200px] pointer-events-none transition-opacity duration-1000 ease-in-out z-0
+          ${isLampOn ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            background: 'linear-gradient(to bottom, rgba(180, 220, 255, 0.45) 0%, rgba(150, 200, 255, 0.1) 60%, transparent 100%)',
+            clipPath: 'polygon(50% 0, 100% 100%, 0 100%)'
+          }}
+        ></div>
+
+        {/* The Lamp Structure */}
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Ceiling Mount */}
+          <div className="w-12 h-3 bg-gradient-to-b from-gray-700 to-gray-900 rounded-b-lg shadow-md z-10"></div>
+          
+          {/* Main Wire */}
+          <div className="w-[2px] h-32 bg-gradient-to-r from-gray-800 to-gray-900 shadow-sm z-10"></div>
+          
+          {/* Lamp Fixture (Brass Neck) */}
+          <div className="w-6 h-8 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-500 rounded-t-md shadow-lg z-10 flex justify-center">
+            <div className="w-8 h-2 bg-amber-400 absolute bottom-0 rounded-full blur-[1px]"></div>
+          </div>
+          
+          {/* Glass Globe Shade */}
+          <div className="relative flex justify-center items-center w-28 h-28 -mt-2 z-20">
+            {/* The Glass Orb */}
+            <div 
+              className={`absolute inset-0 rounded-full border border-white/30 backdrop-blur-sm transition-all duration-700
+              ${isLampOn ? 'bg-white/10' : 'bg-slate-900/40 shadow-inner'}`}
+              style={{ boxShadow: isLampOn ? 'inset 0 0 20px rgba(255,255,255,0.7), 0 0 60px rgba(150,210,255,0.6)' : 'inset 0 -10px 20px rgba(0,0,0,0.5)' }}
+            ></div>
+            
+            {/* The Light Bulb / Filament (Light Blue) */}
+            <div 
+              className={`w-8 h-10 rounded-full transition-all duration-700 z-10 mt-[-20px]
+              ${isLampOn ? 'bg-blue-100 shadow-[0_0_60px_30px_rgba(150,200,255,0.9)]' : 'bg-gray-700'}`}
+            >
+              {/* Inner bright spot */}
+              <div className={`w-3 h-4 mx-auto mt-2 rounded-full transition-opacity duration-300 ${isLampOn ? 'bg-white opacity-100 shadow-[0_0_10px_5px_rgba(255,255,255,0.8)]' : 'opacity-0'}`}></div>
+            </div>
+            
+            {/* Glass reflection highlight */}
+            <div className="absolute top-2 left-4 w-8 h-4 bg-white/40 rounded-full rotate-[-45deg] blur-[2px]"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wall Switch on the side */}
+      <div 
+        className="absolute top-1/2 right-6 lg:right-12 -translate-y-1/2 z-50 flex flex-col items-center cursor-pointer group"
+        onClick={toggleLamp}
+      >
+        <div className="w-14 h-24 bg-[#e5e5e5] rounded-lg shadow-[inset_0_2px_5px_rgba(255,255,255,0.8),_0_10px_20px_rgba(0,0,0,0.5)] border border-gray-300 flex items-center justify-center relative">
+          {/* Screws */}
+          <div className="absolute top-3 right-1/2 translate-x-1/2 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"></div>
+          <div className="absolute bottom-3 right-1/2 translate-x-1/2 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"></div>
+          
+          {/* Inner switch housing */}
+          <div className="w-6 h-12 bg-gray-300 rounded shadow-[inset_0_0_5px_rgba(0,0,0,0.3)] relative overflow-hidden flex items-center justify-center">
+            {/* The switch toggle */}
+            <div className={`absolute w-full h-7 rounded-sm transition-all duration-300 ${
+              isLampOn 
+                ? 'bg-white top-0 shadow-[0_3px_2px_rgba(0,0,0,0.2)] border-b border-gray-200' 
+                : 'bg-[#d0d0d0] bottom-0 shadow-[0_-3px_2px_rgba(0,0,0,0.2)] border-t border-gray-400'
+            }`}></div>
+          </div>
+        </div>
+        
+        {/* Glow behind the switch when lamp is on to make it visible in dark */}
+        <div className={`absolute inset-0 bg-blue-300/30 blur-xl transition-opacity duration-700 pointer-events-none -z-10 ${isLampOn ? 'opacity-100' : 'opacity-0'}`}></div>
+        
+        <span className={`mt-3 text-xs font-bold tracking-widest transition-colors duration-500 ${isLampOn ? 'text-white' : 'text-slate-500'}`}>
+          {isLampOn ? 'ON' : 'OFF'}
+        </span>
+      </div>
+
+      {/* 
+        LEFT SIDE (Form) - Slides in/out based on isLampOn
+      */}
+      <div 
+        className={`absolute top-0 bottom-0 left-0 w-full lg:w-[500px] xl:w-[550px] z-30 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 bg-white/95 lg:bg-white backdrop-blur-xl lg:backdrop-blur-none border-r border-slate-200 shadow-[20px_0_40px_rgba(0,0,0,0.2)] transition-transform duration-[1500ms] ease-in-out
+        ${isLampOn ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="w-full max-w-[400px] mx-auto overflow-y-auto max-h-screen no-scrollbar pb-8">
           {/* Logo & Header */}
-          <div className="mb-8 flex flex-col items-center lg:items-start text-center lg:text-left">
+          <div className="mb-8 flex flex-col items-center lg:items-start text-center lg:text-left mt-8">
             <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center font-bold text-2xl shadow-lg shadow-primary/30 mb-6">
               R
             </div>
@@ -387,7 +489,7 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
           </p>
           
           {/* Secure Login Indicator */}
-          <div className="flex items-center justify-center gap-1.5 mt-6 text-emerald-600">
+          <div className="flex items-center justify-center gap-1.5 mt-6 text-emerald-600 mb-8">
              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
              <span className="text-xs font-semibold tracking-wide uppercase">Secure encrypted login</span>
           </div>
@@ -395,13 +497,12 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
       </div>
 
       {/* 
-        RIGHT SIDE (3D Visuals) - Absolute on mobile (hidden/behind), 
-        flex-1 on desktop. 
+        RIGHT SIDE (3D Visuals) - Absolute taking full width, serving as background
       */}
-      <div className="absolute inset-0 lg:relative lg:flex-1 w-full h-full lg:block opacity-20 lg:opacity-100 z-0 pointer-events-none lg:pointer-events-auto bg-gradient-to-br from-blue-50/50 to-indigo-50/50">
+      <div className="absolute inset-0 w-full h-full z-0 bg-gradient-to-br from-blue-50/20 to-indigo-50/20">
         <Canvas shadows camera={{ position: [0, 2, 6], fov: 45 }}>
           <Suspense fallback={null}>
-            <Scene />
+            <Scene isLampOn={isLampOn} />
           </Suspense>
         </Canvas>
       </div>
@@ -409,3 +510,4 @@ export default function Component({ onLogin, onSignup, error }: LoginSignupProps
     </div>
   );
 }
+

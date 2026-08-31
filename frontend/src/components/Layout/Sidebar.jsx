@@ -1,8 +1,8 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, CalendarDays, MessageSquare, PhoneCall, LogOut } from 'lucide-react';
 
-const Sidebar = ({ isOpen, setIsOpen }) => {
+const Sidebar = ({ isOpen, setIsOpen, activeSection }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -13,16 +13,24 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   };
 
   const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Visitors', path: '/visitors', icon: Users },
-    { label: 'Appointments', path: '/appointments', icon: CalendarDays },
-    { label: 'Enquiries', path: '/enquiries', icon: MessageSquare },
-    { label: 'Call Log', path: '/calls', icon: PhoneCall },
+    { label: 'Dashboard', id: 'dashboard', icon: LayoutDashboard },
+    { label: 'Visitors', id: 'visitors', icon: Users },
+    { label: 'Appointments', id: 'appointments', icon: CalendarDays },
+    { label: 'Enquiries', id: 'enquiries', icon: MessageSquare },
+    { label: 'Call Log', id: 'calls', icon: PhoneCall },
   ];
+
+  const handleNavClick = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (setIsOpen) setIsOpen(false);
+  };
 
   return (
     <aside className={`
-        fixed top-0 left-0 z-40 w-64 h-screen transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 z-50 w-64 h-screen transition-transform duration-300 ease-in-out
         bg-surface backdrop-blur-xl border-r border-border shadow-glass
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}><div className="p-6">
@@ -32,27 +40,25 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       </div>
 
       <nav className="flex-1 px-4 flex flex-col gap-1.5 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            onClick={() => setIsOpen && setIsOpen(false)}
-            className={({ isActive }) => `
-              group flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200
-              ${isActive 
-                ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
-              }
-            `}
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon size={20} className={isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary'} />
-                {item.label}
-              </>
-            )}
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const isActive = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.id)}
+              className={`
+                w-full group flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200
+                ${isActive 
+                  ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                  : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                }
+              `}
+            >
+              <item.icon size={20} className={isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary'} />
+              {item.label}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="p-4 border-t border-border mt-auto">

@@ -5,7 +5,11 @@ import DashboardCharts from '../components/Dashboard/DashboardCharts';
 import Table from '../components/UI/Table';
 import Badge from '../components/UI/Badge';
 import Card from '../components/UI/Card';
-import { Users, UserCheck, Calendar, MessageSquare } from 'lucide-react';
+import Modal from '../components/UI/Modal';
+import Button from '../components/UI/Button';
+import Input from '../components/UI/Input';
+import toast from 'react-hot-toast';
+import { Users, UserCheck, Calendar, MessageSquare, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -19,9 +23,15 @@ export default function Dashboard() {
   const [recentEnquiries, setRecentEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
+  const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
+  const [enquiryForm, setEnquiryForm] = useState({
+    name: '', mobile: '', email: '', enquiryType: '', message: ''
+  });
+  const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
+
+  const fetchDashboardData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
         const [visitorsRes, apptsRes, enquiriesRes, callsRes] = await Promise.allSettled([
           API.get('/visitors'),
           API.get('/appointments'),
@@ -50,12 +60,34 @@ export default function Dashboard() {
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
-    };
+  };
 
+  useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const handleEnquirySubmit = async (e) => {
+    e.preventDefault();
+    if (enquiryForm.mobile.length !== 10) {
+      toast.error('Mobile number must be exactly 10 digits.');
+      return;
+    }
+    setSubmittingEnquiry(true);
+    try {
+      await API.post('/enquiries', enquiryForm);
+      toast.success('Enquiry logged successfully.');
+      setIsEnquiryModalOpen(false);
+      setEnquiryForm({ name: '', mobile: '', email: '', enquiryType: '', message: '' });
+      window.dispatchEvent(new Event('APP_DATA_UPDATED'));
+      fetchDashboardData(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to log enquiry.');
+    } finally {
+      setSubmittingEnquiry(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,6 +115,19 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8 animate-fade-in">
       
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Overview of today's activities</p>
+        </div>
+        <Button 
+          onClick={() => setIsEnquiryModalOpen(true)} 
+          icon={Plus}
+        >
+          New Enquiry
+        </Button>
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
@@ -133,6 +178,63 @@ export default function Dashboard() {
           <Table columns={enquiryColumns} data={recentEnquiries} emptyMessage="No pending enquiries" />
         </Card>
       </div>
+
+      <Modal
+        isOpen={isEnquiryModalOpen}
+        onClose={() => setIsEnquiryModalOpen(false)}
+        title="Log New Enquiry"
+      >
+        <form id="enquiry-form" onSubmit={handleEnquirySubmit} className="flex flex-col gap-4">
+          <Input 
+            label="Caller / Person Name" 
+            required 
+            placeholder="Jane Smith" 
+            value={enquiryForm.name} 
+            onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })} 
+          />
+          <Input 
+            label="Mobile Number" 
+            required 
+            type="tel"
+            placeholder="10-digit number" 
+            minLength={10} 
+            maxLength={10} 
+            value={enquiryForm.mobile} 
+            onChange={(e) => {
+              const digitsOnly = e.target.value.replace(/\D/g, '');
+              if (digitsOnly.length <= 10) setEnquiryForm({ ...enquiryForm, mobile: digitsOnly });
+            }} 
+          />
+          <Input 
+            label="Email" 
+            type="email"
+            placeholder="jane@example.com" 
+            value={enquiryForm.email} 
+            onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })} 
+          />
+          <Input 
+            label="Enquiry Category" 
+            placeholder="Billing / Support / Admission" 
+            value={enquiryForm.enquiryType} 
+            onChange={(e) => setEnquiryForm({ ...enquiryForm, enquiryType: e.target.value })} 
+          />
+          <Input 
+            label="Message / Details" 
+            required 
+            placeholder="Summary of query or question..." 
+            value={enquiryForm.message} 
+            onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })} 
+          />
+          <div className="mt-2 flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setIsEnquiryModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={submittingEnquiry}>
+              Log Enquiry
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
     </div>
   );
